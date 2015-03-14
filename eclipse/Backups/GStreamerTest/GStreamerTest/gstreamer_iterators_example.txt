@@ -1,0 +1,86 @@
+void go_over_pads(GstElement * elem)
+{
+	GstIterator * iter = gst_element_iterate_pads (GST_ELEMENT (elem));
+	bool iter_done = false;
+	while (!iter_done)
+	{
+		GstPad * pad = NULL;
+		GValue data = {0};
+		char * name;
+		GstCaps *caps;
+		gchar   *str;
+
+		switch (gst_iterator_next (iter, &data))
+		{
+			case GST_ITERATOR_OK:
+				pad = (GstPad*) g_value_get_object(&data);
+
+				if (gst_pad_has_current_caps(pad))
+				{
+					caps = gst_pad_get_current_caps(pad);
+
+					for (unsigned int j = 0; j < gst_caps_get_size(caps); ++j)
+					{
+						GstStructure *structure = gst_caps_get_structure(caps, j);
+						for (int i = 0; i < gst_structure_n_fields(structure); ++i)
+						{
+
+							const char *name = gst_structure_nth_field_name(structure, i);
+							GType type = gst_structure_get_field_type(structure, name);
+							const GValue *value = gst_structure_get_value(structure, name);
+						}
+					}
+
+					str = gst_caps_to_string(caps);
+				}
+
+				name = gst_pad_get_name(pad);
+
+				g_value_reset (&data);
+			
+				break;
+		
+			case GST_ITERATOR_RESYNC:			gst_iterator_resync (iter);		break;
+			case GST_ITERATOR_ERROR:			iter_done = true;				break;
+			case GST_ITERATOR_DONE:				iter_done = true;				break;
+		}
+	}
+	gst_iterator_free (iter);
+}
+
+{
+	 /* Sync any remaining children states with bin's state */
+	GstIterator * iter = gst_bin_iterate_elements (GST_BIN (pipeline));
+	bool iter_done = false;
+	while (!iter_done)
+	{
+		GstElement *child = NULL;
+		GValue data = { 0 };
+		char * name;
+		switch (gst_iterator_next (iter, &data))
+		{
+			case GST_ITERATOR_OK:
+				child = (GstElement*) g_value_get_object (&data);
+
+				name = gst_element_get_name(child);
+
+				go_over_pads(child);
+
+				//if (!gst_element_sync_state_with_parent (child))
+				//{
+				//	g_value_reset (&data);
+				//	gst_iterator_free (iter);
+				//}
+		
+				g_value_reset (&data);
+			
+				break;
+		
+			case GST_ITERATOR_RESYNC:			gst_iterator_resync (iter);		break;
+			case GST_ITERATOR_ERROR:			iter_done = true;				break;
+			case GST_ITERATOR_DONE:				iter_done = true;				break;
+		}
+	}
+	gst_iterator_free (iter);
+}
+
